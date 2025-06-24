@@ -1,26 +1,20 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { usePage } from "@inertiajs/react"
+import CustomerDashboard from "./customer/dashboard"
+import AdminDashboard from "./admin/dashboard"
+import VendorDashboard from "./vendor/dashboard"
 
 export default function Dashboard() {
-    return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
-                </h2>
-            }
-        >
-            <Head title="Dashboard" />
+  const { auth, vendor, ...props } = usePage().props as any
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-                            You're logged in!
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </AuthenticatedLayout>
-    );
+  // Determine which dashboard to show based on user role
+  if (auth?.user?.roles?.some((role: any) => role.name === "admin")) {
+    return <AdminDashboard {...props} />
+  }
+
+  if (vendor || auth?.user?.roles?.some((role: any) => role.name === "vendor")) {
+    return <VendorDashboard vendor={vendor} {...props} />
+  }
+
+  // Default to customer dashboard
+  return <CustomerDashboard {...props} />
 }

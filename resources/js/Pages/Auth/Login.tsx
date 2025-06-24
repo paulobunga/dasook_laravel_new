@@ -1,110 +1,177 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+"use client"
 
-export default function Login({
-    status,
-    canResetPassword,
-}: {
-    status?: string;
-    canResetPassword: boolean;
-}) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
-        remember: false as boolean,
-    });
+import type React from "react"
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import AuthLayout from "@/layouts/auth-layout"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SocialLoginButtons } from "@/components/social-login-buttons"
+import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react"
 
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
-    };
+export default function Login() {
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    accountType: "customer",
+    rememberMe: false,
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-    return (
-        <GuestLayout>
-            <Head title="Log in" />
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (error) setError("")
+  }
 
-            {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
-                    />
+      // Mock validation
+      if (formData.email === "demo@example.com" && formData.password === "password") {
+        // Redirect based on account type
+        switch (formData.accountType) {
+          case "admin":
+            router.push("/admin/dashboard")
+            break
+          case "vendor":
+            router.push("/vendor/dashboard")
+            break
+          default:
+            router.push("/customer/dashboard")
+        }
+      } else {
+        setError("Invalid email or password. Try demo@example.com / password")
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
+  const handleSocialLogin = async (provider: string) => {
+    setIsLoading(true)
+    try {
+      // Simulate social login
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      router.push("/customer/dashboard")
+    } catch (err) {
+      setError(`Failed to sign in with ${provider}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+  return (
+    <AuthLayout title="Welcome Back" subtitle="Sign in to your account to continue">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="accountType">Account Type</Label>
+            <Select value={formData.accountType} onValueChange={(value) => handleInputChange("accountType", value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="vendor">Vendor</SelectItem>
+                <SelectItem value="admin">Administrator</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
+          <div>
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              placeholder="Enter your email"
+              required
+              disabled={isLoading}
+            />
+          </div>
 
-                <div className="mt-4 block">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) =>
-                                setData(
-                                    'remember',
-                                    (e.target.checked || false) as false,
-                                )
-                            }
-                        />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Remember me
-                        </span>
-                    </label>
-                </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={(e) => handleInputChange("password", e.target.value)}
+                placeholder="Enter your password"
+                required
+                disabled={isLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                    {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rememberMe"
+                checked={formData.rememberMe}
+                onCheckedChange={(checked) => handleInputChange("rememberMe", checked as boolean)}
+                disabled={isLoading}
+              />
+              <Label htmlFor="rememberMe" className="text-sm">
+                Remember me
+              </Label>
+            </div>
+            <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+              Forgot password?
+            </Link>
+          </div>
+        </div>
 
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
-    );
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Sign In
+        </Button>
+
+        <SocialLoginButtons onSocialLogin={handleSocialLogin} isLoading={isLoading} mode="login" />
+
+        <div className="text-center text-sm">
+          <span className="text-gray-600">Don't have an account? </span>
+          <Link href="/auth/register" className="text-blue-600 hover:text-blue-500 font-medium">
+            Sign up
+          </Link>
+        </div>
+      </form>
+    </AuthLayout>
+  )
 }
